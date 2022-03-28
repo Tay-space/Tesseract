@@ -153,24 +153,27 @@ def on_selection(sender, unused, user_data):
             amount_of_ether = user_data[4]
             send_ether_callback(to_account, amount_of_ether)
         if user_data[2] == "Import Account":
-            import_address_callback(user_data[3])
+            import_address_callback(dpg.get_value(user_data[3]))
     else:
         return
 
     # delete window
     dpg.delete_item(user_data[0])
 
-def show_import_account_notification(title, message, selection_callback, mnemonic_phrase):
-    with dpg.mutex():
+# ----------------
+# Prompts
+# ----------------
 
-        if to_address:
-            with dpg.window(label=title, width=700, height=400, modal=True, no_close=True) as modal_id:
-                alert_message_group = dpg.add_group(horizontal=True)
-                dpg.add_text(message)
-                dpg.add_button(label="Ok", width=75, user_data=(modal_id, True, "Import Account", mnemonic_phrase), callback=on_selection, parent=alert_message_group)
-                dpg.add_button(label="Cancel", width=75, user_data=(modal_id, False), callback=on_selection, parent=alert_message_group)
-        else:
-            return
+def show_import_account_notification(title, message, selection_callback):
+    with dpg.mutex():
+        with dpg.window(label=title, width=700, height=400, modal=True, no_close=True) as modal_id:
+            alert_message_group = dpg.add_group(horizontal=True)
+            dpg.add_text(message)
+            input_mnemonic_group = dpg.add_group(horizontal=True)
+            dpg.add_text("Input mnemonic", pos=(10, 200), parent=input_mnemonic_group)
+            mnemonic_phrase = dpg.add_input_text(parent=input_mnemonic_group)
+            dpg.add_button(label="Ok", width=75, user_data=(modal_id, True, "Import Account", mnemonic_phrase), callback=on_selection, parent=alert_message_group)
+            dpg.add_button(label="Cancel", width=75, user_data=(modal_id, False, "Import Account"), callback=on_selection, parent=alert_message_group)
 
 def show_send_ether_notification(title, message, selection_callback, to_address, amount_of_ether):
     with dpg.mutex():
@@ -328,10 +331,7 @@ with dpg.window(label="Main Window", width=800, height=300) as modal_id:
         dpg.add_text("Welcome to the Tesseract client!")
         create_account_group = dpg.add_group()
         dpg.add_button(pos=(10, 100), label="Create account", callback=create_eth_account_callback, parent=create_account_group)
-        input_mnemonic_group = dpg.add_group(horizontal=True)
-        dpg.add_text("Input mnemonic", pos=(10, 200), parent=input_mnemonic_group)
-        import_address_input = dpg.add_input_text(parent=input_mnemonic_group)
-        dpg.add_button(pos=(10, 250), label="Import account from mnemonic", callback=lambda:show_import_account_notification("Are you sure?", "Approve?", on_selection, dpg.get_value(import_address_input)), parent=input_mnemonic_group)
+        dpg.add_button(pos=(10, 150), label="Import account from mnemonic", callback=lambda:show_import_account_notification("Are you sure?", "Approve?", on_selection), parent=create_account_group)
         dpg.bind_font(default_font)
 
 with dpg.theme() as global_theme:
