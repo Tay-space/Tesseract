@@ -1,6 +1,6 @@
 ## Disclaimer: This is a very early build and there's a ton of work that needs to be done.
 
-[Tesseract Client](/Tesseract_Client.png)
+![Tesseract Client](./Tesseract_Client.png)
 
 ### What is the Tesseract client?
 
