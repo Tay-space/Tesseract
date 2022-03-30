@@ -71,6 +71,8 @@ This command starts the gui.
 
 If you would like to support development here's my eth address `b3nac.eth`.
 
+---
+
 ### Resources
 
 

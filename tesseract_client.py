@@ -270,7 +270,7 @@ def show_info(title, message, selection_callback, function_name):
 # Draw GUI
 # --------
 
-with dpg.window(pos=(0, 405), label="Send Ether to another address", width=800, height=600, collapsed=True):
+with dpg.window(pos=(0, 405), label="Send Ether", width=800, height=600, collapsed=True):
     
     to_address_group = dpg.add_group(horizontal=True)
     amount_to_send_group = dpg.add_group(horizontal=True)
@@ -304,7 +304,7 @@ with dpg.window(pos=(0, 335), label="Transfer nft to TheLootBox weekly giveaway"
     dpg.add_button(pos=(10, 110), label="Send NFT to TheLootBox", callback=lambda:show_transfer_token_thelootbox("Authorization required", "Approve transaction?", dpg.get_value(nft_contract_input), dpg.get_value(token_id_input)))
     dpg.bind_font(default_font)
 
-with dpg.window(pos=(0, 300), label="Account Window", width=800, height=600, collapsed=True):
+with dpg.window(pos=(0, 300), label="Account", width=800, height=600, collapsed=True):
 
     # To support multiple accounts maybe, possibly.
     public_address_list = []
@@ -325,8 +325,7 @@ with dpg.window(pos=(0, 300), label="Account Window", width=800, height=600, col
     dpg.add_button(pos=(10, 190), label="Show private key", callback=lambda:show_private_key_info("Input wallet password", "Approve transaction?", on_selection, "Show private key", wallet_key_input))
     dpg.bind_font(default_font)
 
-
-with dpg.window(label="Main Window", width=800, height=300) as modal_id:
+with dpg.window(label="Create or import account", width=800, height=300) as modal_id:
     with dpg.mutex():
         dpg.add_text("Welcome to the Tesseract client!")
         create_account_group = dpg.add_group()
