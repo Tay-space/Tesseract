@@ -125,10 +125,8 @@ def send_ether_callback(to_account, amount_of_ether):
     'from': dev
     }
 
-    signed_tx = web3_arbitrum_rinkeby.eth.account.sign_transaction(tx, key)
-    transaction_approve = web3_arbitrum_rinkeby.eth.send_raw_transaction(signed_tx.rawTransaction)
-    work_pls = web3_arbitrum_rinkeby.eth.wait_for_transaction_receipt(transaction_approve.hex())
-
+    send_transaction = web3_arbitrum_rinkeby.eth.send_transaction(tx)
+    work_pls = web3_arbitrum_rinkeby.eth.wait_for_transaction_receipt(send_transaction.hex())
 
 # ----------------
 # Selection events
