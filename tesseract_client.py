@@ -84,9 +84,7 @@ def import_address_callback(mnemonic_phrase):
 
 def transfer_nft_thelootbox_callback(nft_contract_input, token_id_input):
     send_nft = lootbox_contract_arbitrum.functions.lootBox(nft_contract_address, token_id_input, dev).buildTransaction({'gas': gas_price, 'nonce': web3_arbitrum_rinkeby.eth.getTransactionCount(dev, 'pending')})
-    signed = web3_arbitrum_rinkeby.eth.account.sign_transaction(send_nft, key)
-    transaction = web3_arbitrum_rinkeby.eth.send_raw_transaction(signed.rawTransaction)
-    print(transaction.hex())
+    transaction = web3_arbitrum_rinkeby.eth.send_transaction(send_nft)
 
 def create_bundle_callback(callback):
     try:
@@ -96,7 +94,7 @@ def create_bundle_callback(callback):
 
         # Create bundle
         create_bundle = lootbox_contract_rinkeby.functions.createBundle(10000000000000000000).buildTransaction({'chainId': 4, 'gas': web3_local_rinkeby.toWei('0.02', 'gwei'), 'nonce': web3_local_rinkeby.eth.get_transaction_count(dev, 'pending'), 'from': dev})
-        send_approve_transaction = web3_local_rinkeby.eth.send_transaction(create_bundle)
+        send_bundle_transaction = web3_local_rinkeby.eth.send_transaction(create_bundle)
     except Exception as e:
         print(e)
 
