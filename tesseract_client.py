@@ -92,14 +92,11 @@ def create_bundle_callback(callback):
     try:
         # Approve transaction
         approve = dai_contract_rinkeby.functions.approve('0xE742e87184f840a559d26356362979AA6de56E3E', 10000000000000000000).buildTransaction({'chainId': 4, 'gas': web3_local_rinkeby.toWei('0.02', 'gwei'), 'nonce': web3_local_rinkeby.eth.get_transaction_count(dev, 'pending'), 'from': dev})
-        signed_approve = web3_local_rinkeby.eth.account.sign_transaction(approve, key)
-        transaction_approve = web3_local_rinkeby.eth.send_raw_transaction(signed_approve.rawTransaction)
+        send_approve_transaction = web3_local_rinkeby.eth.send_transaction(approve)
+
         # Create bundle
         create_bundle = lootbox_contract_rinkeby.functions.createBundle(10000000000000000000).buildTransaction({'chainId': 4, 'gas': web3_local_rinkeby.toWei('0.02', 'gwei'), 'nonce': web3_local_rinkeby.eth.get_transaction_count(dev, 'pending'), 'from': dev})
-        signed = web3_local_rinkeby.eth.account.sign_transaction(create_bundle, key)
-        transaction = web3_local_rinkeby.eth.send_raw_transaction(signed.rawTransaction)
-        # Transaction response variable
-        work_pls = web3_local_rinkeby.eth.wait_for_transaction_receipt(transaction.hex())
+        send_approve_transaction = web3_local_rinkeby.eth.send_transaction(create_bundle)
     except Exception as e:
         print(e)
 
