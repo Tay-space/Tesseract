@@ -66,20 +66,10 @@ def import_address_callback(mnemonic_phrase):
         private_key = no_plaintext.encrypt(bytes(account_mnemonic.key.hex(), encoding='utf8'))
 
         decrypt_pub_address = no_plaintext.decrypt(pub_address).decode("utf-8")
-        file = open(".pub", "w")
-        file.write(decrypt_pub_address)
-        file.close()
-
-        enc_file = open(".private", "w")
-        enc_file.write(str(mnemonic_phrase.decode("utf-8")))
-        enc_file.write("\n")
-        enc_file.write(str(pub_address.decode("utf-8")))
-        enc_file.write("\n")
-        enc_file.write(str(private_key.decode("utf-8")))
-        enc_file.close()
-
         decrypt_mnemonic_phrase = no_plaintext.decrypt(mnemonic_phrase).decode("utf-8")
         decrypt_private_key = no_plaintext.decrypt(private_key).decode("utf-8")
+
+        save_account_info(pub_address, decrypt_pub_address, mnemonic_phrase, private_key)
         show_created_account_info("Account info", decrypt_pub_address, wallet_key, decrypt_private_key, decrypt_mnemonic_phrase)
     except eth_utils.exceptions.ValidationError as e:
         print(e)
