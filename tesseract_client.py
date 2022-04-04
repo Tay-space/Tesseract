@@ -27,15 +27,7 @@ with dpg.font_registry():
 # Callbacks
 # ---------
 
-def create_eth_account_callback(callback):
-    new_eth_account, mnemonic = Account.create_with_mnemonic()
-    wallet_key = Fernet.generate_key().decode("utf-8")
-    no_plaintext = Fernet(wallet_key)
-    mnemonic_phrase = no_plaintext.encrypt(bytes(mnemonic, encoding='utf8'))
-    pub_address = no_plaintext.encrypt(bytes(new_eth_account.address, encoding='utf8'))
-    private_key = no_plaintext.encrypt(bytes(new_eth_account.key.hex(), encoding='utf8'))
-
-    decrypt_pub_address = no_plaintext.decrypt(pub_address).decode("utf-8")
+def save_account_info(pub_address, decrypt_pub_address, mnemonic_phrase, private_key):
     file = open(".pub", "w")
     file.write(decrypt_pub_address)
     file.close()
@@ -48,9 +40,19 @@ def create_eth_account_callback(callback):
     enc_file.write(str(private_key.decode("utf-8")))
     enc_file.close()
 
+def create_eth_account_callback(callback):
+    new_eth_account, mnemonic = Account.create_with_mnemonic()
+    wallet_key = Fernet.generate_key().decode("utf-8")
+    no_plaintext = Fernet(wallet_key)
+    mnemonic_phrase = no_plaintext.encrypt(bytes(mnemonic, encoding='utf8'))
+    pub_address = no_plaintext.encrypt(bytes(new_eth_account.address, encoding='utf8'))
+    private_key = no_plaintext.encrypt(bytes(new_eth_account.key.hex(), encoding='utf8'))
+
+    decrypt_pub_address = no_plaintext.decrypt(pub_address).decode("utf-8")
     decrypt_mnemonic_phrase = no_plaintext.decrypt(mnemonic_phrase).decode("utf-8")
     decrypt_private_key = no_plaintext.decrypt(private_key).decode("utf-8")
-
+    
+    save_account_info(pub_address, decrypt_pub_address, mnemonic_phrase, private_key)
     show_created_account_info("Account info", decrypt_pub_address, wallet_key, decrypt_private_key, decrypt_mnemonic_phrase)
 
 def import_address_callback(mnemonic_phrase):
@@ -110,7 +112,6 @@ def show_private_key(callback):
     return os.environ['private']
 
 def send_ether_callback(to_account, amount_of_ether):
-    
     tx = {
     'nonce': web3_arbitrum_rinkeby.eth.get_transaction_count(dev, 'pending'),
     'to': to_account,
@@ -148,10 +149,7 @@ def on_selection(sender, unused, user_data):
         if user_data[2] == "Import Account":
             import_address_callback(dpg.get_value(user_data[3]))
     else:
-        return
-
-    # delete window
-    dpg.delete_item(user_data[0])
+        dpg.delete_item(user_data[0])
 
 # ----------------
 # Prompts
@@ -212,6 +210,7 @@ def show_transfer_token_thelootbox(title, message, nft_contract_input, token_id_
             return
 
 def show_thelootbox_bundle_notification(title, message, selection_callback, function_name):
+    
     with dpg.mutex():
 
         if nft_contract_input:
@@ -227,19 +226,13 @@ def show_private_key_info(title, message, selection_callback, function_name, wal
 
     with dpg.mutex():
 
-        viewport_width = dpg.get_viewport_client_width()
-        viewport_height = dpg.get_viewport_client_height()
-
-        with dpg.window(label=title, modal=True, no_close=True) as modal_id:
+        with dpg.window(label=title, width=700, height=400, modal=True) as modal_id:
             if function_name == "Show private key":
                 alert_message_group = dpg.add_group(horizontal=True)
-                dpg.add_text(message)
-                wallet_key_input = dpg.add_input_text(default_value=show_private_key(dpg.get_value(wallet_key_input), no_spaces=True, readonly=True))
-                dpg.add_button(label="Exit", width=75, user_data=(modal_id, False), callback=selection_callback, parent=alert_message_group)
-    dpg.split_frame()
-    width = dpg.get_item_width(modal_id)
-    height = dpg.get_item_height(modal_id)
-    dpg.set_item_pos(modal_id, [viewport_width // 2 - width // 2, viewport_height // 2 - height // 2])
+                dpg.add_text(message, parent=alert_message_group)
+                wallet_key_input = dpg.add_input_text(default_value=show_private_key(dpg.get_value(wallet_key_input)), no_spaces=True, readonly=True, parent=alert_message_group)
+                alert_message_group = dpg.add_group(horizontal=True)
+                dpg.add_button(label="Exit", width=75, user_data=(modal_id, False), callback=on_selection, parent=alert_message_group)
 
 def show_info(title, message, selection_callback, function_name):
 
@@ -301,21 +294,24 @@ with dpg.window(pos=(0, 300), label="Account", width=800, height=600, collapsed=
 
     # To support multiple accounts maybe, possibly.
     public_address_list = []
+    public_address = ""
 
     public_address_group = dpg.add_group()
 
     file = open(".pub", "r")
     for line in file:
         public_address_list.append(line)
-        public_address = public_address_list[0]
     file.close()
+
+    if public_address_list != []:
+        public_address = public_address_list[0]
 
     dpg.add_text("If you have an account set your public address will be displayed here!", parent=public_address_group)
     dpg.add_input_text(default_value=public_address, parent=public_address_group)
     private_key_group = dpg.add_group(horizontal=True)
     dpg.add_text("Input your wallet password here and click show key to view your private key!", parent=private_key_group)
     wallet_key_input = dpg.add_input_text()
-    dpg.add_button(pos=(10, 190), label="Show private key", callback=lambda:show_private_key_info("Input wallet password", "Approve transaction?", on_selection, "Show private key", wallet_key_input))
+    dpg.add_button(pos=(10, 190), label="Show private key", callback=lambda:show_private_key_info("Input wallet password", "Wallet key", on_selection, "Show private key", wallet_key_input))
     dpg.bind_font(default_font)
 
 with dpg.window(label="Create or import account", width=800, height=300) as modal_id:
