@@ -27,6 +27,20 @@ with dpg.font_registry():
 # Callbacks
 # ---------
 
+def generate_wallet_key(wallet_key):
+    no_plaintext = Fernet(wallet_key)
+    mnemonic_phrase = no_plaintext.encrypt(bytes(mnemonic, encoding='utf8'))
+    pub_address = no_plaintext.encrypt(bytes(new_eth_account.address, encoding='utf8'))
+    private_key = no_plaintext.encrypt(bytes(new_eth_account.key.hex(), encoding='utf8'))
+
+    decrypt_pub_address = no_plaintext.decrypt(pub_address).decode("utf-8")
+    decrypt_mnemonic_phrase = no_plaintext.decrypt(mnemonic_phrase).decode("utf-8")
+    decrypt_private_key = no_plaintext.decrypt(private_key).decode("utf-8")
+    
+    save_account_info(pub_address, decrypt_pub_address, mnemonic_phrase, private_key)
+    show_created_account_info("Account info", decrypt_pub_address, wallet_key, decrypt_private_key, decrypt_mnemonic_phrase)
+
+
 def save_account_info(pub_address, decrypt_pub_address, mnemonic_phrase, private_key):
     file = open(".pub", "w")
     file.write(decrypt_pub_address)
@@ -43,34 +57,13 @@ def save_account_info(pub_address, decrypt_pub_address, mnemonic_phrase, private
 def create_eth_account_callback(callback):
     new_eth_account, mnemonic = Account.create_with_mnemonic()
     wallet_key = Fernet.generate_key().decode("utf-8")
-    no_plaintext = Fernet(wallet_key)
-    mnemonic_phrase = no_plaintext.encrypt(bytes(mnemonic, encoding='utf8'))
-    pub_address = no_plaintext.encrypt(bytes(new_eth_account.address, encoding='utf8'))
-    private_key = no_plaintext.encrypt(bytes(new_eth_account.key.hex(), encoding='utf8'))
-
-    decrypt_pub_address = no_plaintext.decrypt(pub_address).decode("utf-8")
-    decrypt_mnemonic_phrase = no_plaintext.decrypt(mnemonic_phrase).decode("utf-8")
-    decrypt_private_key = no_plaintext.decrypt(private_key).decode("utf-8")
-    
-    save_account_info(pub_address, decrypt_pub_address, mnemonic_phrase, private_key)
-    show_created_account_info("Account info", decrypt_pub_address, wallet_key, decrypt_private_key, decrypt_mnemonic_phrase)
+    generate_wallet_key(wallet_key)
 
 def import_address_callback(mnemonic_phrase):
     try:
         account_mnemonic = Account.from_mnemonic(str(mnemonic_phrase))
-        
         wallet_key = Fernet.generate_key().decode("utf-8")
-        no_plaintext = Fernet(wallet_key)
-        mnemonic_phrase = no_plaintext.encrypt(bytes(mnemonic_phrase, encoding='utf8'))
-        pub_address = no_plaintext.encrypt(bytes(account_mnemonic.address, encoding='utf8'))
-        private_key = no_plaintext.encrypt(bytes(account_mnemonic.key.hex(), encoding='utf8'))
-
-        decrypt_pub_address = no_plaintext.decrypt(pub_address).decode("utf-8")
-        decrypt_mnemonic_phrase = no_plaintext.decrypt(mnemonic_phrase).decode("utf-8")
-        decrypt_private_key = no_plaintext.decrypt(private_key).decode("utf-8")
-
-        save_account_info(pub_address, decrypt_pub_address, mnemonic_phrase, private_key)
-        show_created_account_info("Account info", decrypt_pub_address, wallet_key, decrypt_private_key, decrypt_mnemonic_phrase)
+        generate_wallet_key(wallet_key)     
     except eth_utils.exceptions.ValidationError as e:
         print(e)
 
