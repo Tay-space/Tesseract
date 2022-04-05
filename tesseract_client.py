@@ -27,7 +27,7 @@ with dpg.font_registry():
 # Callbacks
 # ---------
 
-def generate_wallet_key(wallet_key):
+def create_account(wallet_key):
     no_plaintext = Fernet(wallet_key)
     mnemonic_phrase = no_plaintext.encrypt(bytes(mnemonic, encoding='utf8'))
     pub_address = no_plaintext.encrypt(bytes(new_eth_account.address, encoding='utf8'))
@@ -57,13 +57,13 @@ def save_account_info(pub_address, decrypt_pub_address, mnemonic_phrase, private
 def create_eth_account_callback(callback):
     new_eth_account, mnemonic = Account.create_with_mnemonic()
     wallet_key = Fernet.generate_key().decode("utf-8")
-    generate_wallet_key(wallet_key)
+    create_account(wallet_key)
 
 def import_address_callback(mnemonic_phrase):
     try:
         account_mnemonic = Account.from_mnemonic(str(mnemonic_phrase))
         wallet_key = Fernet.generate_key().decode("utf-8")
-        generate_wallet_key(wallet_key)     
+        create_account(wallet_key)     
     except eth_utils.exceptions.ValidationError as e:
         print(e)
 
