@@ -1,6 +1,6 @@
 ## Disclaimer: This is a very early build and there's a ton of work that needs to be done.
 
-![Tesseract Client](./Tesseract_Client.png)
+![Tesseract Client](./images/Tesseract_Client.png)
 
 ### What is the Tesseract client?
 
@@ -16,13 +16,21 @@ Because web browsers are exploited quite a bit and I like being different. Tesse
 
 ### Setup
 
-1. The required dependencies can be installed with pip.
+1. I highly recommend setting up a virtual environment, especially if you have projects that could have conflicting dependencies. This is the command to create a virtual environment.
+
+`python3 -m venv envname`
+
+Once the venv is created source it in order to install the dependencies to that environment.
+
+`source path/to/envname/bin/activate`
+
+2. The required dependencies can be installed with pip.
 
 `pip install web3 dearpygui eth-account`
 
-2. There's several environment variables that need to be set depending on what network you want to connect to that `env_vars.py` reads from. (In progress)
+3. There's several environment variables that need to be set depending on what network you want to connect to that `env_vars.py` reads from. (In progress)
 
-3. Sourcing environment variables.
+4. Sourcing environment variables.
 
 Currently Tesseract only supports one account and the public address for that account.
 
