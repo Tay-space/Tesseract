@@ -20,8 +20,8 @@ dpg.create_context()
 Account.enable_unaudited_hdwallet_features()
 
 with dpg.font_registry():
-    default_font = dpg.add_font("m5x7.ttf", 25)
-    created_account_font = dpg.add_font("m5x7.ttf", 18)
+    default_font = dpg.add_font("../fonts/m5x7.ttf", 25)
+    created_account_font = dpg.add_font("../fonts/m5x7.ttf", 18)
 
 # ---------
 # Callbacks
@@ -280,6 +280,10 @@ with dpg.window(pos=(0, 300), label="Account", width=800, height=600, collapsed=
     public_address = ""
 
     public_address_group = dpg.add_group()
+
+    if not os.path.exists(".pub"):
+        create_file = open('.pub', 'w')
+        create_file.close()
 
     file = open(".pub", "r")
     for line in file:
