@@ -13,7 +13,7 @@ from env_vars import (
 import eth_utils
 from cryptography.fernet import Fernet
 from eth_account import Account
-import os
+import os, json
 
 dpg.create_context()
 
@@ -64,6 +64,29 @@ def import_address_callback(mnemonic_phrase):
         new_eth_account = Account.from_mnemonic(str(mnemonic_phrase))
         wallet_key = Fernet.generate_key().decode("utf-8")
         create_account(new_eth_account, mnemonic_phrase, wallet_key)     
+    except eth_utils.exceptions.ValidationError as e:
+        print(e)
+
+def import_multiple_accounts_callback(mnemonic_phrase, number_of_accounts):
+    try:
+        accounts_list = []
+        iterator = 0
+        wallet_key = Fernet.generate_key().decode("utf-8")
+        no_plaintext = Fernet(wallet_key)
+
+        for account in range(int(number_of_accounts)):
+            new_eth_account = Account.from_mnemonic(mnemonic_phrase, account_path=f"m/44'/60'/0'/0/{iterator}")
+
+            pub_address = no_plaintext.encrypt(bytes(new_eth_account.address, encoding='utf8'))
+            private_key = no_plaintext.encrypt(bytes(new_eth_account.key.hex(), encoding='utf8'))
+
+            account = {'number': int(iterator), 'public_address': str(pub_address.decode("utf-8")), 'private_key': str(private_key.decode("utf-8")) }
+            iterator = iterator + 1
+            accounts_list.append(account)
+            show_created_account_info("Account info", "", pub_address, private_key, "")
+    
+        json.dump(accounts_list, open('accounts.json', 'a'))
+
     except eth_utils.exceptions.ValidationError as e:
         print(e)
 
@@ -131,12 +154,27 @@ def on_selection(sender, unused, user_data):
             send_ether_callback(to_account, amount_of_ether)
         if user_data[2] == "Import Account":
             import_address_callback(dpg.get_value(user_data[3]))
+        if user_data[2] == "Import Multiple Accounts":
+            import_multiple_accounts_callback(dpg.get_value(user_data[3]), dpg.get_value(user_data[4]))
     else:
         dpg.delete_item(user_data[0])
 
 # ----------------
 # Prompts
 # ----------------
+
+def show_import_multiple_accounts_notification(title, message, selection_callback):
+    with dpg.mutex():
+        with dpg.window(label=title, width=700, height=400, modal=True) as modal_id:
+            alert_message_group = dpg.add_group(horizontal=True)
+            dpg.add_text(message)
+            mnemonic_group = dpg.add_group(horizontal=True)
+            dpg.add_text("Input mnemonic", pos=(10, 200), parent=mnemonic_group)
+            mnemonic_phrase = dpg.add_input_text(parent=mnemonic_group)
+            dpg.add_text("Input number of accounts", pos=(10, 250), parent=mnemonic_group)
+            number_of_accounts = dpg.add_input_text(parent=mnemonic_group)
+            dpg.add_button(label="Ok", width=75, user_data=(modal_id, True, "Import Multiple Accounts", mnemonic_phrase, number_of_accounts), callback=on_selection, parent=alert_message_group)
+            dpg.add_button(label="Cancel", width=75, user_data=(modal_id, False, "Import Multiple Accounts"), callback=on_selection, parent=alert_message_group)
 
 def show_import_account_notification(title, message, selection_callback):
     with dpg.mutex():
@@ -306,7 +344,9 @@ with dpg.window(label="Create or import account", width=800, height=300) as moda
         dpg.add_text("Welcome to the Tesseract client!")
         create_account_group = dpg.add_group()
         dpg.add_button(pos=(10, 100), label="Create account", callback=create_eth_account_callback, parent=create_account_group)
-        dpg.add_button(pos=(10, 150), label="Import account from mnemonic", callback=lambda:show_import_account_notification("Are you sure?", "Approve?", on_selection), parent=create_account_group)
+        dpg.add_button(pos=(10, 150), label="Import account from mnemonic", callback=lambda:show_import_account_notification("Import account", "Approve?", on_selection), parent=create_account_group)
+        dpg.add_button(pos=(10, 200), label="Import multiple accounts from mnemonic", callback=lambda:show_import_multiple_accounts_notification("Import multiple accounts", "Approve?", on_selection), parent=create_account_group)
+
         dpg.bind_font(default_font)
 
 with dpg.theme() as global_theme:
