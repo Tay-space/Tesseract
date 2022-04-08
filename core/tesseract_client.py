@@ -12,12 +12,11 @@ from env_vars import (
 )
 import eth_utils
 from cryptography.fernet import Fernet
-from eth_account import Account
 import os, json
 
 dpg.create_context()
 
-Account.enable_unaudited_hdwallet_features()
+web3_arbitrum_rinkeby.eth.account.enable_unaudited_hdwallet_features()
 
 with dpg.font_registry():
     default_font = dpg.add_font("../fonts/m5x7.ttf", 25)
@@ -55,13 +54,13 @@ def save_account_info(pub_address, decrypt_pub_address, mnemonic_phrase, private
     enc_file.close()
 
 def create_eth_account_callback(callback):
-    new_eth_account, mnemonic = Account.create_with_mnemonic()
+    new_eth_account, mnemonic = web3_arbitrum_rinkeby.eth.account.create_with_mnemonic()
     wallet_key = Fernet.generate_key().decode("utf-8")
     create_account(new_eth_account, mnemonic, wallet_key)
 
 def import_address_callback(mnemonic_phrase):
     try:
-        new_eth_account = Account.from_mnemonic(str(mnemonic_phrase))
+        new_eth_account = web3_arbitrum_rinkeby.eth.account.from_mnemonic(str(mnemonic_phrase))
         wallet_key = Fernet.generate_key().decode("utf-8")
         create_account(new_eth_account, mnemonic_phrase, wallet_key)     
     except eth_utils.exceptions.ValidationError as e:
@@ -75,7 +74,7 @@ def import_multiple_accounts_callback(mnemonic_phrase, number_of_accounts):
         no_plaintext = Fernet(wallet_key)
 
         for account in range(int(number_of_accounts)):
-            new_eth_account = Account.from_mnemonic(mnemonic_phrase, account_path=f"m/44'/60'/0'/0/{iterator}")
+            new_eth_account = web3_arbitrum_rinkeby.eth.account.from_mnemonic(mnemonic_phrase, account_path=f"m/44'/60'/0'/0/{iterator}")
 
             pub_address = no_plaintext.encrypt(bytes(new_eth_account.address, encoding='utf8'))
             private_key = no_plaintext.encrypt(bytes(new_eth_account.key.hex(), encoding='utf8'))
@@ -83,7 +82,7 @@ def import_multiple_accounts_callback(mnemonic_phrase, number_of_accounts):
             account = {'number': int(iterator), 'public_address': str(pub_address.decode("utf-8")), 'private_key': str(private_key.decode("utf-8")) }
             iterator = iterator + 1
             accounts_list.append(account)
-            show_created_account_info("Account info", "", pub_address, private_key, "")
+            show_created_account_info("Account info", pub_address, wallet_key, private_key, "")
     
         json.dump(accounts_list, open('accounts.json', 'a'))
 
@@ -106,16 +105,13 @@ def create_bundle_callback(callback):
     except Exception as e:
         print(e)
 
-def show_private_key(callback):
-    lines = []
-    no_plaintext = Fernet(callback)
-    file = open(".private", "rb")
-    for line in file:
-        lines.append(no_plaintext.decrypt(line).decode('utf8'))
-    file.close()
-    os.environ['private'] = lines[2]
-    lines.clear()
-    return os.environ['private']
+def show_specific_account(account_id, wallet_key):
+    print(wallet_key)
+    no_plaintext = Fernet(wallet_key)
+    with open('accounts.json', 'r') as accounts:
+        account_data = json.load(accounts)
+        decrypt_pub_address = no_plaintext.decrypt(bytes(account_data[int(account_id)]['public_address'], encoding='utf8'))
+        print(decrypt_pub_address)
 
 def send_ether_callback(to_account, amount_of_ether):
     tx = {
@@ -143,7 +139,7 @@ def on_selection(sender, unused, user_data):
             create_bundle_callback(callback)
         if user_data[2] == "Show private key":
             key_to_bytes = bytes(dpg.get_value(user_data[3]), encoding='utf8')
-            show_private_key(key_to_bytes)
+            show_specific_account(key_to_bytes, user_data[4])
         if user_data[2] == "Transfer nft TheLootBox":
             nft_contract_input = dpg.get_value(user_data[3])
             token_id_input = dpg.get_value(user_data[4])
@@ -243,7 +239,7 @@ def show_thelootbox_bundle_notification(title, message, selection_callback, func
         else:
             return
 
-def show_private_key_info(title, message, selection_callback, function_name, wallet_key_input):
+def show_private_key_info(title, message, selection_callback, function_name, wallet_key_input, account_id_input):
 
     with dpg.mutex():
 
@@ -251,7 +247,7 @@ def show_private_key_info(title, message, selection_callback, function_name, wal
             if function_name == "Show private key":
                 alert_message_group = dpg.add_group(horizontal=True)
                 dpg.add_text(message, parent=alert_message_group)
-                wallet_key_input = dpg.add_input_text(default_value=show_private_key(dpg.get_value(wallet_key_input)), no_spaces=True, readonly=True, parent=alert_message_group)
+                wallet_key_input = dpg.add_input_text(default_value=show_specific_account(dpg.get_value(wallet_key_input), dpg.get_value(account_id_input)), no_spaces=True, readonly=True, parent=alert_message_group)
                 alert_message_group = dpg.add_group(horizontal=True)
                 dpg.add_button(label="Exit", width=75, user_data=(modal_id, False), callback=on_selection, parent=alert_message_group)
 
@@ -313,7 +309,6 @@ with dpg.window(pos=(0, 335), label="Transfer nft to TheLootBox weekly giveaway"
 
 with dpg.window(pos=(0, 300), label="Account", width=800, height=600, collapsed=True):
 
-    # To support multiple accounts maybe, possibly.
     public_address_list = []
     public_address = ""
 
@@ -333,10 +328,12 @@ with dpg.window(pos=(0, 300), label="Account", width=800, height=600, collapsed=
 
     dpg.add_text("If you have an account set your public address will be displayed here!", parent=public_address_group)
     dpg.add_input_text(default_value=public_address, parent=public_address_group)
-    private_key_group = dpg.add_group(horizontal=True)
-    dpg.add_text("Input your wallet password here and click show key to view your private key!", parent=private_key_group)
-    wallet_key_input = dpg.add_input_text()
-    dpg.add_button(pos=(10, 190), label="Show private key", callback=lambda:show_private_key_info("Input wallet password", "Wallet key", on_selection, "Show private key", wallet_key_input))
+    dpg.add_text("Input your account id and password here and click account to view your private key!", parent=public_address_group)
+    dpg.add_text("Account Id", parent=public_address_group)
+    account_id_input = dpg.add_input_text(parent=public_address_group)
+    dpg.add_text("Wallet key", parent=public_address_group)
+    wallet_key_input = dpg.add_input_text(parent=public_address_group)
+    dpg.add_button(pos=(10, 300), label="Show account info", callback=lambda:show_private_key_info("Input wallet password", "Wallet key", on_selection, "Show private key", account_id_input, wallet_key_input))
     dpg.bind_font(default_font)
 
 with dpg.window(label="Create or import account", width=800, height=300) as modal_id:
