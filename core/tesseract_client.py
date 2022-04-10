@@ -30,6 +30,7 @@ with dpg.font_registry():
 # Callbacks
 # ---------
 
+
 def create_account(new_eth_account, mnemonic, wallet_key):
     if not os.path.exists("accounts.json"):
         no_plaintext = Fernet(wallet_key)
@@ -74,22 +75,19 @@ def import_address_callback(mnemonic_phrase):
 def import_multiple_accounts_callback(mnemonic_phrase, number_of_accounts):
     try:
         multiple_accounts_list = []
-        iterator = 0
         wallet_key = Fernet.generate_key().decode("utf-8")
         no_plaintext = Fernet(wallet_key)
 
         if os.path.exists("accounts.json"):
-            with open('accounts.json', 'r') as accounts:
-                account_data = json.load(accounts)
+            with open('accounts.json', 'r') as account_check:
+                current_accounts = json.load(account_check)
 
         for account in range(int(number_of_accounts)):
             try:
-                if account_data[account]:
+                if current_accounts[account]:
                     print("Account exists!!!!!")
-            except IndexError as e:
-                print("Account does not exist")
+            except IndexError:
                 multiple_accounts_list.append(account)
-                print(multiple_accounts_list)
 
         for number in multiple_accounts_list:
             new_eth_account = web3_arbitrum_rinkeby.eth.account.from_mnemonic(mnemonic_phrase,
@@ -143,18 +141,26 @@ def show_specific_account(account_id, wallet_key):
         show_created_account_info("Account info", pub_address, decrypt_private_address, wallet_key, "")
 
 
-def send_ether_callback(to_account, amount_of_ether):
+def send_ether_callback(to_account, amount, account_id, wallet_key):
+    no_plaintext = Fernet(wallet_key)
+    with open('accounts.json', 'r') as accounts_from_file:
+        account_data_json = json.load(accounts_from_file)
+        selected_account = account_data_json[int(account_id)]['public_address']
+        key = no_plaintext.decrypt(
+            bytes(account_data_json[int(account_id)]['private_key'], encoding='utf8'))
+
     tx = {
-        'nonce': web3_arbitrum_rinkeby.eth.get_transaction_count(dev, 'pending'),
+        'nonce': web3_arbitrum_rinkeby.eth.get_transaction_count(selected_account, 'pending'),
         'to': to_account,
-        'value': web3_arbitrum_rinkeby.toWei(amount_of_ether, 'ether'),
+        'value': web3_arbitrum_rinkeby.toWei(amount, 'ether'),
         'gas': web3_arbitrum_rinkeby.toWei('0.02', 'gwei'),
         'gasPrice': gas_price,
-        'from': dev
+        'from': selected_account
     }
 
-    send_transaction = web3_arbitrum_rinkeby.eth.send_transaction(tx)
-    work_pls = web3_arbitrum_rinkeby.eth.wait_for_transaction_receipt(send_transaction.hex())
+    sign = web3_arbitrum_rinkeby.eth.account.sign_transaction(tx, key.decode("utf-8"))
+    transaction = web3_arbitrum_rinkeby.eth.send_raw_transaction(sign.rawTransaction)
+    work_pls = web3_arbitrum_rinkeby.eth.wait_for_transaction_receipt(transaction.hex())
 
 
 # ----------------
@@ -162,7 +168,6 @@ def send_ether_callback(to_account, amount_of_ether):
 # ----------------
 
 def on_selection(sender, unused, user_data):
-    print(user_data)
     if user_data[1]:
         callback = user_data[1]
         if user_data[2] == "Create account":
@@ -179,7 +184,9 @@ def on_selection(sender, unused, user_data):
         if user_data[2] == "Send Ether":
             to_account = user_data[3]
             amount = user_data[4]
-            send_ether_callback(to_account, amount)
+            sender_id = user_data[5]
+            unlock = user_data[6]
+            send_ether_callback(to_account, amount, sender_id, unlock)
         if user_data[2] == "Import Account":
             import_address_callback(dpg.get_value(user_data[3]))
         if user_data[2] == "Import Multiple Accounts":
@@ -223,15 +230,14 @@ def show_import_account_notification(title, message):
                            callback=on_selection, parent=alert_message_group)
 
 
-def show_send_ether_notification(title, message, to, amount):
+def show_send_ether_notification(title, to, amount, sender_account, unlock):
     with dpg.mutex():
 
-        if to_address:
+        if to:
             with dpg.window(label=title, width=700, height=400, modal=True, no_close=True) as modal_id:
                 alert_message_group = dpg.add_group(horizontal=True)
-                dpg.add_text(message)
                 dpg.add_button(label="Ok", width=75,
-                               user_data=(modal_id, True, "Send Ether", to, amount),
+                               user_data=(modal_id, True, "Send Ether", to, amount, sender_account, unlock),
                                callback=on_selection, parent=alert_message_group)
                 dpg.add_button(label="Cancel", width=75, user_data=(modal_id, False), callback=on_selection,
                                parent=alert_message_group)
@@ -347,14 +353,22 @@ with dpg.window(pos=(0, 405), label="Transfer ERC721 to TheLootBox weekly giveaw
 with dpg.window(pos=(0, 335), label="Send Ether", width=800, height=600, collapsed=True):
     to_address_group = dpg.add_group(horizontal=True)
     amount_to_send_group = dpg.add_group(horizontal=True)
+    sender_id_group = dpg.add_group(horizontal=True)
+    account_unlock_group = dpg.add_group(horizontal=True)
     dpg.add_text("To", parent=to_address_group)
     to_address = dpg.add_input_text(parent=to_address_group, no_spaces=True)
     dpg.add_text("Enter amount of Ether to send", parent=amount_to_send_group)
     amount_of_ether = dpg.add_input_text(parent=amount_to_send_group, no_spaces=True)
-    dpg.add_button(pos=(10, 120), label="Send Ether",
-                   callback=lambda: show_send_ether_notification("Authorization required", "Approve transaction?",
-                                                                 on_selection, dpg.get_value(to_address),
-                                                                 dpg.get_value(amount_of_ether)))
+    dpg.add_text("Account Id", parent=sender_id_group)
+    sender_account_id = dpg.add_input_text(parent=sender_id_group, no_spaces=True)
+    dpg.add_text("Wallet unlock key", parent=account_unlock_group)
+    unlock_account = dpg.add_input_text(parent=account_unlock_group, no_spaces=True)
+    dpg.add_button(pos=(10, 200), label="Send Ether",
+                   callback=lambda: show_send_ether_notification("Authorization required",
+                                                                 dpg.get_value(to_address),
+                                                                 dpg.get_value(amount_of_ether),
+                                                                 dpg.get_value(sender_account_id),
+                                                                 dpg.get_value(unlock_account)))
     dpg.bind_font(default_font)
 
 with dpg.window(pos=(0, 300), label="Account", width=800, height=600, collapsed=True):

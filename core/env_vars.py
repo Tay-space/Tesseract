@@ -1,13 +1,9 @@
 from web3 import Web3
-from web3.middleware import construct_sign_and_send_raw_middleware
 import os
 
 # Networks setup
 web3_local_rinkeby = Web3(Web3.HTTPProvider('http://127.0.0.1:8888'))
 web3_arbitrum_rinkeby = Web3(Web3.HTTPProvider('https://rinkeby.arbitrum.io/rpc'))
-acct = web3_arbitrum_rinkeby.eth.account.from_key(os.environ.get('ARBITRUM_PRIVATE_KEY'))
-web3_arbitrum_rinkeby.middleware_onion.add(construct_sign_and_send_raw_middleware(acct))
-web3_arbitrum_rinkeby.eth.default_account = acct.address
 
 # Arbitrum TheLootBox contract setup
 addr_lootbox_arbitrum = os.environ.get("TEST_NET_ARBITRUM_LOOTBOX")

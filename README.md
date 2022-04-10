@@ -30,25 +30,8 @@ Once the venv is created source it in order to install the dependencies to that 
 
 3. There's several environment variables that need to be set depending on what network you want to connect to that `env_vars.py` reads from. (In progress)
 
-4. Sourcing environment variables.
+4. Create an account
 
-Currently Tesseract only supports one account and the public address for that account.
-
-```python
-# Dev setup
-dev = os.environ.get("DEV")
-key = os.environ.get('ARBITRUM_PRIVATE_KEY')
-```
-
-These variables can be set by sourcing a file.
-
-`source .env`
-
-The contents of that file.
-
-```bash
-export DEV='YOUR_PUBLIC_KEY'
-export KEY='YOUR_PRIVATE_KEY'
 ```
 
 ---
