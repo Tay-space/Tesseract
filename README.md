@@ -32,8 +32,6 @@ Once the venv is created source it in order to install the dependencies to that 
 
 4. Create an account
 
-```
-
 ---
 
 ### Creating a network connection
