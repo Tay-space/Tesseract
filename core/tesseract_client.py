@@ -69,7 +69,7 @@ def import_address_callback(mnemonic_phrase):
         wallet_key = Fernet.generate_key().decode("utf-8")
         create_account(new_eth_account, mnemonic_phrase, wallet_key)
     except eth_utils.exceptions.ValidationError as e:
-        print(e)
+        show_exception("Exception", e)
 
 
 def import_multiple_accounts_callback(mnemonic_phrase, number_of_accounts):
@@ -104,63 +104,79 @@ def import_multiple_accounts_callback(mnemonic_phrase, number_of_accounts):
         multiple_accounts_list.clear()
 
     except eth_utils.exceptions.ValidationError as e:
-        print(e)
+        show_exception("Exception", e)
 
 
-def transfer_nft_thelootbox_callback(nft_contract_address, token_id):
-    send_nft = lootbox_contract_arbitrum.functions.lootBox(nft_contract_address, token_id, dev).buildTransaction(
-        {'gas': gas_price, 'nonce': web3_arbitrum_rinkeby.eth.getTransactionCount(dev, 'pending')})
-    transaction = web3_arbitrum_rinkeby.eth.send_transaction(send_nft)
+def transfer_token_thelootbox_callback(nft_contract_address, token_id, account_id, wallet_key):
+    selected_account, key = get_account_private_key(account_id, wallet_key)
+    try:
+        send_token = lootbox_contract_arbitrum.functions.lootBox(nft_contract_address, token_id,
+                                                                 selected_account).buildTransaction(
+            {'gas': gas_price, 'nonce': web3_arbitrum_rinkeby.eth.getTransactionCount(dev, 'pending')})
+        transaction = web3_arbitrum_rinkeby.eth.send_transaction(send_token)
+        sign = web3_arbitrum_rinkeby.eth.account.sign_transaction(transaction, key.decode("utf-8"))
+        web3_arbitrum_rinkeby.eth.send_raw_transaction(sign.rawTransaction)
+    except Exception as e:
+        show_exception("Exception", e)
 
 
-def create_bundle_callback(callback):
+def create_bundle_callback(account_id, wallet_key):
+    selected_account, key = get_account_private_key(account_id, wallet_key)
     try:
         # Approve transaction
         approve = dai_contract_rinkeby.functions.approve('0xE742e87184f840a559d26356362979AA6de56E3E',
                                                          10000000000000000000).buildTransaction(
             {'chainId': 4, 'gas': web3_local_rinkeby.toWei('0.02', 'gwei'),
-             'nonce': web3_local_rinkeby.eth.get_transaction_count(dev, 'pending'), 'from': dev})
-        send_approve_transaction = web3_local_rinkeby.eth.send_transaction(approve)
+             'nonce': web3_local_rinkeby.eth.get_transaction_count(dev, 'pending'), 'from': selected_account})
+
+        sign_approve = web3_arbitrum_rinkeby.eth.account.sign_transaction(approve, key)
+        send_approve_transaction = web3_local_rinkeby.eth.send_raw_transaction(sign_approve.rawTransaction)
 
         # Create bundle
         create_bundle = lootbox_contract_rinkeby.functions.createBundle(10000000000000000000).buildTransaction(
             {'chainId': 4, 'gas': web3_local_rinkeby.toWei('0.02', 'gwei'),
-             'nonce': web3_local_rinkeby.eth.get_transaction_count(dev, 'pending'), 'from': dev})
-        send_bundle_transaction = web3_local_rinkeby.eth.send_transaction(create_bundle)
+             'nonce': web3_local_rinkeby.eth.get_transaction_count(dev, 'pending'), 'from': selected_account})
+
+        sign_create_bundle = web3_arbitrum_rinkeby.eth.account.sign_transaction(create_bundle, key)
+        web3_arbitrum_rinkeby.eth.send_raw_transaction(sign_create_bundle.rawTransaction)
+
     except Exception as e:
-        print(e)
+        show_exception("Exception", e)
 
 
 def show_specific_account(account_id, wallet_key):
-    no_plaintext = Fernet(wallet_key)
-    with open('accounts.json', 'r') as accounts_from_file:
-        account_data_json = json.load(accounts_from_file)
-        pub_address = account_data_json[int(account_id)]['public_address']
-        decrypt_private_address = no_plaintext.decrypt(
-            bytes(account_data_json[int(account_id)]['private_key'], encoding='utf8'))
-        show_created_account_info("Account info", pub_address, decrypt_private_address, wallet_key, "")
+    selected_account, key = get_account_private_key(account_id, wallet_key)
+    show_created_account_info("Account info", selected_account, key, wallet_key, "")
 
 
-def send_ether_callback(to_account, amount, account_id, wallet_key):
+def get_account_private_key(account_id, wallet_key):
     no_plaintext = Fernet(wallet_key)
     with open('accounts.json', 'r') as accounts_from_file:
         account_data_json = json.load(accounts_from_file)
         selected_account = account_data_json[int(account_id)]['public_address']
         key = no_plaintext.decrypt(
             bytes(account_data_json[int(account_id)]['private_key'], encoding='utf8'))
+    return selected_account, key.decode('utf-8')
 
-    tx = {
-        'nonce': web3_arbitrum_rinkeby.eth.get_transaction_count(selected_account, 'pending'),
-        'to': to_account,
-        'value': web3_arbitrum_rinkeby.toWei(amount, 'ether'),
-        'gas': web3_arbitrum_rinkeby.toWei('0.02', 'gwei'),
-        'gasPrice': gas_price,
-        'from': selected_account
-    }
 
-    sign = web3_arbitrum_rinkeby.eth.account.sign_transaction(tx, key.decode("utf-8"))
-    transaction = web3_arbitrum_rinkeby.eth.send_raw_transaction(sign.rawTransaction)
-    work_pls = web3_arbitrum_rinkeby.eth.wait_for_transaction_receipt(transaction.hex())
+def send_ether_callback(to_account, amount, account_id, wallet_key):
+    try:
+        selected_account, key = get_account_private_key(account_id, wallet_key)
+
+        tx = {
+            'nonce': web3_arbitrum_rinkeby.eth.get_transaction_count(selected_account, 'pending'),
+            'to': to_account,
+            'value': web3_arbitrum_rinkeby.toWei(amount, 'ether'),
+            'gas': web3_arbitrum_rinkeby.toWei('0.02', 'gwei'),
+            'gasPrice': gas_price,
+            'from': selected_account
+        }
+
+        sign = web3_arbitrum_rinkeby.eth.account.sign_transaction(tx, key)
+        transaction = web3_arbitrum_rinkeby.eth.send_raw_transaction(sign.rawTransaction)
+        work_pls = web3_arbitrum_rinkeby.eth.wait_for_transaction_receipt(transaction.hex())
+    except Exception as e:
+        show_exception("Exception", e)
 
 
 # ----------------
@@ -169,18 +185,21 @@ def send_ether_callback(to_account, amount, account_id, wallet_key):
 
 def on_selection(sender, unused, user_data):
     if user_data[1]:
-        callback = user_data[1]
         if user_data[2] == "Create account":
             create_eth_account_callback()
         if user_data[2] == "Create bundle":
-            create_bundle_callback(callback)
+            account_id = dpg.get_value(user_data[3])
+            wallet_key = dpg.get_value(user_data[4])
+            create_bundle_callback(account_id, wallet_key)
         if user_data[2] == "Account info":
             key_to_bytes = bytes(dpg.get_value(user_data[3]), encoding='utf8')
             show_specific_account(key_to_bytes, user_data[4])
-        if user_data[2] == "Transfer nft TheLootBox":
+        if user_data[2] == "Transfer token TheLootBox":
             nft_contract_address = dpg.get_value(user_data[3])
             token_id = dpg.get_value(user_data[4])
-            transfer_nft_thelootbox_callback(nft_contract_address, token_id)
+            account_id = dpg.get_value(user_data[5])
+            wallet_key = dpg.get_value(user_data[6])
+            transfer_token_thelootbox_callback(nft_contract_address, token_id, account_id, wallet_key)
         if user_data[2] == "Send Ether":
             to_account = user_data[3]
             amount = user_data[4]
@@ -199,9 +218,24 @@ def on_selection(sender, unused, user_data):
 # Prompts
 # ----------------
 
+def close_window(sender, unused, user_data):
+    dpg.delete_item(user_data[0])
+
+
+def show_exception(title, e):
+    with dpg.mutex():
+        with dpg.window(label=title, width=700, height=400) as exception_modal_id:
+            alert_message_group = dpg.add_group(horizontal=True)
+            button_group = dpg.add_group()
+            dpg.add_text(e, parent=alert_message_group)
+            dpg.add_button(label="Ok", width=75,
+                           user_data=(exception_modal_id, True, "Exception", e),
+                           callback=close_window, parent=button_group)
+
+
 def show_import_multiple_accounts_notification(title, message):
     with dpg.mutex():
-        with dpg.window(label=title, width=700, height=400, modal=True) as modal_id:
+        with dpg.window(label=title, width=700, height=400, modal=True) as multiple_modal_id:
             alert_message_group = dpg.add_group(horizontal=True)
             dpg.add_text(message)
             mnemonic_group = dpg.add_group(horizontal=True)
@@ -210,23 +244,25 @@ def show_import_multiple_accounts_notification(title, message):
             dpg.add_text("Input number of accounts", pos=(10, 250), parent=mnemonic_group)
             number_of_accounts = dpg.add_input_text(parent=mnemonic_group)
             dpg.add_button(label="Ok", width=75,
-                           user_data=(modal_id, True, "Import Multiple Accounts", mnemonic_phrase, number_of_accounts),
+                           user_data=(
+                               multiple_modal_id, True, "Import Multiple Accounts", mnemonic_phrase,
+                               number_of_accounts),
                            callback=on_selection, parent=alert_message_group)
-            dpg.add_button(label="Cancel", width=75, user_data=(modal_id, False, "Import Multiple Accounts"),
+            dpg.add_button(label="Cancel", width=75, user_data=(multiple_modal_id, False, "Import Multiple Accounts"),
                            callback=on_selection, parent=alert_message_group)
 
 
 def show_import_account_notification(title, message):
     with dpg.mutex():
-        with dpg.window(label=title, width=700, height=400, modal=True, no_close=True) as modal_id:
+        with dpg.window(label=title, width=700, height=400, modal=True, no_close=True) as import_modal_id:
             alert_message_group = dpg.add_group(horizontal=True)
             dpg.add_text(message)
             input_mnemonic_group = dpg.add_group(horizontal=True)
             dpg.add_text("Input mnemonic", pos=(10, 200), parent=input_mnemonic_group)
             mnemonic_phrase = dpg.add_input_text(parent=input_mnemonic_group)
-            dpg.add_button(label="Ok", width=75, user_data=(modal_id, True, "Import Account", mnemonic_phrase),
+            dpg.add_button(label="Ok", width=75, user_data=(import_modal_id, True, "Import Account", mnemonic_phrase),
                            callback=on_selection, parent=alert_message_group)
-            dpg.add_button(label="Cancel", width=75, user_data=(modal_id, False, "Import Account"),
+            dpg.add_button(label="Cancel", width=75, user_data=(import_modal_id, False, "Import Account"),
                            callback=on_selection, parent=alert_message_group)
 
 
@@ -234,12 +270,12 @@ def show_send_ether_notification(title, to, amount, sender_account, unlock):
     with dpg.mutex():
 
         if to:
-            with dpg.window(label=title, width=700, height=400, modal=True, no_close=True) as modal_id:
+            with dpg.window(label=title, width=700, height=400, modal=True, no_close=True) as send_modal_id:
                 alert_message_group = dpg.add_group(horizontal=True)
                 dpg.add_button(label="Ok", width=75,
-                               user_data=(modal_id, True, "Send Ether", to, amount, sender_account, unlock),
+                               user_data=(send_modal_id, True, "Send Ether", to, amount, sender_account, unlock),
                                callback=on_selection, parent=alert_message_group)
-                dpg.add_button(label="Cancel", width=75, user_data=(modal_id, False), callback=on_selection,
+                dpg.add_button(label="Cancel", width=75, user_data=(send_modal_id, False), callback=on_selection,
                                parent=alert_message_group)
         else:
             return
@@ -252,34 +288,35 @@ def show_created_account_info(title, decrypt_pub_address, decrypt_private_key, w
             account_created_group = dpg.add_group()
             account_unlock_key_warning = dpg.add_group()
             dpg.add_text("Public address", parent=account_created_group)
-            account_public_key = dpg.add_input_text(default_value=decrypt_pub_address, width=500,
-                                                    parent=account_created_group, no_spaces=True, readonly=True)
+            dpg.add_input_text(default_value=decrypt_pub_address, width=500,
+                               parent=account_created_group, no_spaces=True, readonly=True)
             dpg.add_text("Account private key", parent=account_created_group)
-            account_private_key = dpg.add_input_text(default_value=decrypt_private_key, width=580,
-                                                     parent=account_created_group, no_spaces=True, readonly=True)
+            dpg.add_input_text(default_value=decrypt_private_key, width=580,
+                               parent=account_created_group, no_spaces=True, readonly=True)
             dpg.add_text("Account unlock key", parent=account_created_group)
-            wallet_unlock_key = dpg.add_input_text(default_value=wallet_unlock_key, width=510,
-                                                   parent=account_created_group, no_spaces=True, readonly=True)
+            dpg.add_input_text(default_value=wallet_unlock_key, width=510,
+                               parent=account_created_group, no_spaces=True, readonly=True)
             dpg.add_text("Account mnemonic", parent=account_created_group)
-            account_mnemonic = dpg.add_input_text(default_value=decrypt_mnemonic_phrase, width=620,
-                                                  parent=account_created_group)
+            dpg.add_input_text(default_value=decrypt_mnemonic_phrase, width=620,
+                               parent=account_created_group)
             dpg.add_text("", parent=account_unlock_key_warning)
             dpg.add_text("WARNING: Make sure to save your account unlock key!", parent=account_unlock_key_warning)
             dpg.add_text("This key will not be saved by the Tesseract Client.", parent=account_unlock_key_warning)
             dpg.bind_font(created_account_font)
 
 
-def show_transfer_token_thelootbox(title, message, nft_contract_address, token_id):
+def show_transfer_token_thelootbox(title, message, nft_contract_address, token_id, account_id, wallet_key):
     with dpg.mutex():
 
         if nft_contract_address:
-            with dpg.window(label=title, width=700, height=400, modal=True, no_close=True) as modal_id:
+            with dpg.window(label=title, width=700, height=400, modal=True, no_close=True) as transfer_modal_id:
                 alert_message_group = dpg.add_group(horizontal=True)
                 dpg.add_text(message)
                 dpg.add_button(label="Ok", width=75, user_data=(
-                    modal_id, True, "Transfer nft TheLootBox", nft_contract_address, token_id), callback=on_selection,
+                    modal_id, True, "Transfer token TheLootBox", nft_contract_address, token_id, account_id,
+                    wallet_key), callback=on_selection,
                                parent=alert_message_group)
-                dpg.add_button(label="Cancel", width=75, user_data=(modal_id, False), callback=on_selection,
+                dpg.add_button(label="Cancel", width=75, user_data=(transfer_modal_id, False), callback=on_selection,
                                parent=alert_message_group)
         else:
             return
@@ -289,12 +326,20 @@ def show_thelootbox_bundle_notification(title, message):
     with dpg.mutex():
 
         if nft_contract_input:
-            with dpg.window(label=title, width=700, height=400, modal=True, no_close=True) as modal_id:
-                alert_message_group = dpg.add_group(horizontal=True)
+            with dpg.window(label=title, width=700, height=400, modal=True) as bundle_modal_id:
+                alert_message_group = dpg.add_group()
                 dpg.add_text(message)
-                dpg.add_button(label="Ok", width=75, user_data=(modal_id, True, "Create bundle"), callback=on_selection,
+                dpg.add_text("Input account id you would like to use", parent=alert_message_group)
+                account_id = dpg.add_input_text(parent=alert_message_group, no_spaces=True)
+                dpg.add_text("Input wallet unlock key", parent=alert_message_group)
+                wallet_key = dpg.add_input_text(parent=alert_message_group, no_spaces=True)
+
+                dpg.add_button(label="Ok", width=75, user_data=(bundle_modal_id, True, "Create bundle",
+                                                                dpg.get_value(account_id),
+                                                                dpg.get_value(wallet_key)),
+                               callback=on_selection,
                                parent=alert_message_group)
-                dpg.add_button(label="Cancel", width=75, user_data=(modal_id, False), callback=on_selection,
+                dpg.add_button(label="Cancel", width=75, user_data=(bundle_modal_id, False), callback=on_selection,
                                parent=alert_message_group)
         else:
             return
@@ -305,18 +350,18 @@ def show_info(title, message, selection_callback, function_name):
         viewport_width = dpg.get_viewport_client_width()
         viewport_height = dpg.get_viewport_client_height()
 
-        with dpg.window(label=title, modal=True, no_close=True) as modal_id:
+        with dpg.window(label=title, modal=True, no_close=True) as info_modal_id:
             if function_name == "Transfer nft":
                 alert_message_group = dpg.add_group(horizontal=True)
                 dpg.add_text(message)
-                dpg.add_button(label="Ok", width=75, user_data=(modal_id, True, function_name),
+                dpg.add_button(label="Ok", width=75, user_data=(info_modal_id, True, function_name),
                                callback=selection_callback, parent=alert_message_group)
-                dpg.add_button(label="Cancel", width=75, user_data=(modal_id, False), callback=selection_callback,
+                dpg.add_button(label="Cancel", width=75, user_data=(info_modal_id, False), callback=selection_callback,
                                parent=alert_message_group)
     dpg.split_frame()
-    width = dpg.get_item_width(modal_id)
-    height = dpg.get_item_height(modal_id)
-    dpg.set_item_pos(modal_id, [viewport_width // 2 - width // 2, viewport_height // 2 - height // 2])
+    width = dpg.get_item_width(info_modal_id)
+    height = dpg.get_item_height(info_modal_id)
+    dpg.set_item_pos(info_modal_id, [viewport_width // 2 - width // 2, viewport_height // 2 - height // 2])
 
 
 # --------
@@ -341,13 +386,18 @@ with dpg.window(pos=(0, 405), label="Transfer ERC721 to TheLootBox weekly giveaw
     nft_contract_input = dpg.add_input_text(parent=input_nft_contract_group, no_spaces=True)
 
     token_id_group = dpg.add_group(horizontal=True)
-    dpg.add_text("Input nft id that you own", parent=token_id_group)
+    dpg.add_text("Input ERC721 token id that you own", parent=token_id_group)
     token_id_input = dpg.add_input_text(parent=token_id_group, no_spaces=True)
-    wallet_key_input = ""
-    dpg.add_button(pos=(10, 110), label="Send NFT to TheLootBox",
+    dpg.add_text("Input account id that you want to use", parent=token_id_group)
+    account_id_input = dpg.add_input_text(parent=token_id_group, no_spaces=True)
+    dpg.add_text("Input account unlock key", parent=token_id_group)
+    wallet_key_input = dpg.add_input_text(parent=token_id_group, no_spaces=True)
+    dpg.add_button(pos=(10, 110), label="Send token to TheLootBox",
                    callback=lambda: show_transfer_token_thelootbox("Authorization required", "Approve transaction?",
+                                                                   dpg.get_value(token_id_input),
                                                                    dpg.get_value(nft_contract_input),
-                                                                   dpg.get_value(token_id_input)))
+                                                                   dpg.get_value(account_id_input),
+                                                                   dpg.get_value(wallet_key_input)))
     dpg.bind_font(default_font)
 
 with dpg.window(pos=(0, 335), label="Send Ether", width=800, height=600, collapsed=True):
@@ -403,7 +453,8 @@ with dpg.window(label="Create or import account", width=800, height=300) as moda
                        callback=lambda: show_import_account_notification("Import account", "Approve?"),
                        parent=create_account_group)
         dpg.add_button(pos=(10, 200), label="Import multiple accounts from mnemonic",
-                       callback=lambda: show_import_multiple_accounts_notification("Import multiple accounts", "Approve?"),
+                       callback=lambda: show_import_multiple_accounts_notification("Import multiple accounts",
+                                                                                   "Approve?"),
                        parent=create_account_group)
 
         dpg.bind_font(default_font)
