@@ -114,7 +114,7 @@ def transfer_token_thelootbox_callback(nft_contract_address, token_id, account_i
                                                                  selected_account).buildTransaction(
             {'gas': gas_price, 'nonce': web3_arbitrum_rinkeby.eth.getTransactionCount(dev, 'pending')})
         transaction = web3_arbitrum_rinkeby.eth.send_transaction(send_token)
-        sign = web3_arbitrum_rinkeby.eth.account.sign_transaction(transaction, key.decode("utf-8"))
+        sign = web3_arbitrum_rinkeby.eth.account.sign_transaction(transaction, key)
         web3_arbitrum_rinkeby.eth.send_raw_transaction(sign.rawTransaction)
     except Exception as e:
         show_exception("Exception", e)
@@ -130,7 +130,7 @@ def create_bundle_callback(account_id, wallet_key):
              'nonce': web3_local_rinkeby.eth.get_transaction_count(dev, 'pending'), 'from': selected_account})
 
         sign_approve = web3_arbitrum_rinkeby.eth.account.sign_transaction(approve, key)
-        send_approve_transaction = web3_local_rinkeby.eth.send_raw_transaction(sign_approve.rawTransaction)
+        web3_local_rinkeby.eth.send_raw_transaction(sign_approve.rawTransaction)
 
         # Create bundle
         create_bundle = lootbox_contract_rinkeby.functions.createBundle(10000000000000000000).buildTransaction(
@@ -174,7 +174,6 @@ def send_ether_callback(to_account, amount, account_id, wallet_key):
 
         sign = web3_arbitrum_rinkeby.eth.account.sign_transaction(tx, key)
         transaction = web3_arbitrum_rinkeby.eth.send_raw_transaction(sign.rawTransaction)
-        work_pls = web3_arbitrum_rinkeby.eth.wait_for_transaction_receipt(transaction.hex())
     except Exception as e:
         show_exception("Exception", e)
 
@@ -388,10 +387,15 @@ with dpg.window(pos=(0, 405), label="Transfer ERC721 to TheLootBox weekly giveaw
     token_id_group = dpg.add_group(horizontal=True)
     dpg.add_text("Input ERC721 token id that you own", parent=token_id_group)
     token_id_input = dpg.add_input_text(parent=token_id_group, no_spaces=True)
-    dpg.add_text("Input account id that you want to use", parent=token_id_group)
-    account_id_input = dpg.add_input_text(parent=token_id_group, no_spaces=True)
-    dpg.add_text("Input account unlock key", parent=token_id_group)
-    wallet_key_input = dpg.add_input_text(parent=token_id_group, no_spaces=True)
+
+    account_id_group = dpg.add_group(horizontal=True)
+    dpg.add_text("Input account id that you want to use", parent=account_id_group)
+    account_id_input = dpg.add_input_text(parent=account_id_group, no_spaces=True)
+
+    wallet_unlock_group = dpg.add_group(horizontal=True)
+    dpg.add_text("Input account unlock key", parent=wallet_unlock_group)
+    wallet_key_input = dpg.add_input_text(parent=wallet_unlock_group, no_spaces=True)
+
     dpg.add_button(pos=(10, 110), label="Send token to TheLootBox",
                    callback=lambda: show_transfer_token_thelootbox("Authorization required", "Approve transaction?",
                                                                    dpg.get_value(token_id_input),
