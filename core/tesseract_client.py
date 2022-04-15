@@ -7,7 +7,6 @@ from cryptography.fernet import Fernet
 
 from env_vars import (
     gas_price,
-    lootbox_contract_arbitrum,
     lootbox_contract_rinkeby,
     web3_local_rinkeby,
     web3_arbitrum_rinkeby,
@@ -107,19 +106,6 @@ def import_multiple_accounts_callback(mnemonic_phrase, number_of_accounts):
         show_exception("Exception", e)
 
 
-def transfer_token_thelootbox_callback(nft_contract_address, token_id, account_id, wallet_key):
-    selected_account, key = get_account_private_key(account_id, wallet_key)
-    try:
-        send_token = lootbox_contract_arbitrum.functions.lootBox(nft_contract_address, token_id,
-                                                                 selected_account).buildTransaction(
-            {'gas': gas_price, 'nonce': web3_arbitrum_rinkeby.eth.getTransactionCount(dev, 'pending')})
-        transaction = web3_arbitrum_rinkeby.eth.send_transaction(send_token)
-        sign = web3_arbitrum_rinkeby.eth.account.sign_transaction(transaction, key)
-        web3_arbitrum_rinkeby.eth.send_raw_transaction(sign.rawTransaction)
-    except Exception as e:
-        show_exception("Exception", e)
-
-
 def create_bundle_callback(account_id, wallet_key):
     selected_account, key = get_account_private_key(account_id, wallet_key)
     try:
@@ -193,12 +179,6 @@ def on_selection(sender, unused, user_data):
         if user_data[2] == "Account info":
             key_to_bytes = bytes(dpg.get_value(user_data[3]), encoding='utf8')
             show_specific_account(key_to_bytes, user_data[4])
-        if user_data[2] == "Transfer token TheLootBox":
-            nft_contract_address = dpg.get_value(user_data[3])
-            token_id = dpg.get_value(user_data[4])
-            account_id = dpg.get_value(user_data[5])
-            wallet_key = dpg.get_value(user_data[6])
-            transfer_token_thelootbox_callback(nft_contract_address, token_id, account_id, wallet_key)
         if user_data[2] == "Send Ether":
             to_account = user_data[3]
             amount = user_data[4]
@@ -304,44 +284,23 @@ def show_created_account_info(title, decrypt_pub_address, decrypt_private_key, w
             dpg.bind_font(created_account_font)
 
 
-def show_transfer_token_thelootbox(title, message, nft_contract_address, token_id, account_id, wallet_key):
-    with dpg.mutex():
-
-        if nft_contract_address:
-            with dpg.window(label=title, width=700, height=400, modal=True, no_close=True) as transfer_modal_id:
-                alert_message_group = dpg.add_group(horizontal=True)
-                dpg.add_text(message)
-                dpg.add_button(label="Ok", width=75, user_data=(
-                    modal_id, True, "Transfer token TheLootBox", nft_contract_address, token_id, account_id,
-                    wallet_key), callback=on_selection,
-                               parent=alert_message_group)
-                dpg.add_button(label="Cancel", width=75, user_data=(transfer_modal_id, False), callback=on_selection,
-                               parent=alert_message_group)
-        else:
-            return
-
-
 def show_thelootbox_bundle_notification(title, message):
     with dpg.mutex():
+        with dpg.window(label=title, width=700, height=400, modal=True) as bundle_modal_id:
+            alert_message_group = dpg.add_group()
+            dpg.add_text(message)
+            dpg.add_text("Input account id you would like to use", parent=alert_message_group)
+            account_id = dpg.add_input_text(parent=alert_message_group, no_spaces=True)
+            dpg.add_text("Input wallet unlock key", parent=alert_message_group)
+            wallet_key = dpg.add_input_text(parent=alert_message_group, no_spaces=True)
 
-        if nft_contract_input:
-            with dpg.window(label=title, width=700, height=400, modal=True) as bundle_modal_id:
-                alert_message_group = dpg.add_group()
-                dpg.add_text(message)
-                dpg.add_text("Input account id you would like to use", parent=alert_message_group)
-                account_id = dpg.add_input_text(parent=alert_message_group, no_spaces=True)
-                dpg.add_text("Input wallet unlock key", parent=alert_message_group)
-                wallet_key = dpg.add_input_text(parent=alert_message_group, no_spaces=True)
+            dpg.add_button(label="Ok", width=75, user_data=(bundle_modal_id, True, "Create bundle",
+                                                            dpg.get_value(account_id),
+                                                            dpg.get_value(wallet_key)),
+                           callback=on_selection, parent=alert_message_group)
 
-                dpg.add_button(label="Ok", width=75, user_data=(bundle_modal_id, True, "Create bundle",
-                                                                dpg.get_value(account_id),
-                                                                dpg.get_value(wallet_key)),
-                               callback=on_selection,
-                               parent=alert_message_group)
-                dpg.add_button(label="Cancel", width=75, user_data=(bundle_modal_id, False), callback=on_selection,
-                               parent=alert_message_group)
-        else:
-            return
+            dpg.add_button(label="Cancel", width=75, user_data=(bundle_modal_id, False), callback=on_selection,
+                           parent=alert_message_group)
 
 
 def show_info(title, message, selection_callback, function_name):
@@ -376,32 +335,6 @@ with dpg.window(pos=(0, 370), label="Create TheLootBox bundle", width=800, heigh
     dpg.add_button(pos=(10, 120), label="Create bundle",
                    callback=lambda: show_thelootbox_bundle_notification("Authorization required",
                                                                         "Approve transaction?"))
-    dpg.bind_font(default_font)
-
-with dpg.window(pos=(0, 405), label="Transfer ERC721 to TheLootBox weekly giveaway", width=800, height=600,
-                collapsed=True):
-    input_nft_contract_group = dpg.add_group(horizontal=True)
-    dpg.add_text("Input public nft contract address", parent=input_nft_contract_group)
-    nft_contract_input = dpg.add_input_text(parent=input_nft_contract_group, no_spaces=True)
-
-    token_id_group = dpg.add_group(horizontal=True)
-    dpg.add_text("Input ERC721 token id that you own", parent=token_id_group)
-    token_id_input = dpg.add_input_text(parent=token_id_group, no_spaces=True)
-
-    account_id_group = dpg.add_group(horizontal=True)
-    dpg.add_text("Input account id that you want to use", parent=account_id_group)
-    account_id_input = dpg.add_input_text(parent=account_id_group, no_spaces=True)
-
-    wallet_unlock_group = dpg.add_group(horizontal=True)
-    dpg.add_text("Input account unlock key", parent=wallet_unlock_group)
-    wallet_key_input = dpg.add_input_text(parent=wallet_unlock_group, no_spaces=True)
-
-    dpg.add_button(pos=(10, 110), label="Send token to TheLootBox",
-                   callback=lambda: show_transfer_token_thelootbox("Authorization required", "Approve transaction?",
-                                                                   dpg.get_value(token_id_input),
-                                                                   dpg.get_value(nft_contract_input),
-                                                                   dpg.get_value(account_id_input),
-                                                                   dpg.get_value(wallet_key_input)))
     dpg.bind_font(default_font)
 
 with dpg.window(pos=(0, 335), label="Send Ether", width=800, height=600, collapsed=True):
