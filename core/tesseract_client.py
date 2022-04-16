@@ -159,7 +159,7 @@ def send_ether_callback(to_account, amount, account_id, wallet_key):
         }
 
         sign = web3_arbitrum_rinkeby.eth.account.sign_transaction(tx, key)
-        transaction = web3_arbitrum_rinkeby.eth.send_raw_transaction(sign.rawTransaction)
+        web3_arbitrum_rinkeby.eth.send_raw_transaction(sign.rawTransaction)
     except Exception as e:
         show_exception("Exception", e)
 
