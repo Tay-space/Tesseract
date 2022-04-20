@@ -287,19 +287,21 @@ def show_thelootbox_bundle_notification(title, message):
     with dpg.mutex():
         with dpg.window(label=title, width=700, height=400, modal=True) as bundle_modal_id:
             alert_message_group = dpg.add_group()
-            dpg.add_text(message)
-            dpg.add_text("Input account id you would like to use", parent=alert_message_group)
+            selection_group = dpg.add_group(horizontal=True)
+
+            dpg.add_text("Input account id", parent=alert_message_group)
             account_id = dpg.add_input_text(parent=alert_message_group, no_spaces=True)
             dpg.add_text("Input wallet unlock key", parent=alert_message_group)
             wallet_key = dpg.add_input_text(parent=alert_message_group, no_spaces=True)
+            dpg.add_text(message, parent=alert_message_group)
 
             dpg.add_button(label="Ok", width=75, user_data=(bundle_modal_id, True, "Create bundle",
                                                             dpg.get_value(account_id),
                                                             dpg.get_value(wallet_key)),
-                           callback=on_selection, parent=alert_message_group)
+                           callback=on_selection, parent=selection_group)
 
             dpg.add_button(label="Cancel", width=75, user_data=(bundle_modal_id, False), callback=on_selection,
-                           parent=alert_message_group)
+                           parent=selection_group)
 
 
 def show_info(title, message, selection_callback, function_name):
