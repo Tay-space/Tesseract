@@ -212,11 +212,10 @@ def show_exception(title, e):
                            callback=close_window, parent=button_group)
 
 
-def show_import_multiple_accounts_notification(title, message):
+def show_import_multiple_accounts_notification(title):
     with dpg.mutex():
         with dpg.window(label=title, width=700, height=400, modal=True) as multiple_modal_id:
             alert_message_group = dpg.add_group(horizontal=True)
-            dpg.add_text(message)
             mnemonic_group = dpg.add_group(horizontal=True)
             dpg.add_text("Input mnemonic", pos=(10, 200), parent=mnemonic_group)
             mnemonic_phrase = dpg.add_input_text(parent=mnemonic_group)
@@ -367,9 +366,9 @@ with dpg.window(pos=(0, 300), label="Account", width=800, height=600, collapsed=
             public_address = account_data[0]['public_address']
 
     public_address_group = dpg.add_group()
-    dpg.add_text("If you have an account set your public address will be displayed here!", parent=public_address_group)
+    dpg.add_text("Public address", parent=public_address_group)
     dpg.add_input_text(default_value=public_address, parent=public_address_group)
-    dpg.add_text("Input your account id and password here and click account to view your private key!",
+    dpg.add_text("Input your account id and wallet unlock key here",
                  parent=public_address_group)
     dpg.add_text("Account Id", parent=public_address_group)
     account_id_input = dpg.add_input_text(parent=public_address_group)
@@ -390,8 +389,7 @@ with dpg.window(label="Create or import account", width=800, height=300) as moda
                        callback=lambda: show_import_account_notification("Import account", "Approve?"),
                        parent=create_account_group)
         dpg.add_button(pos=(10, 200), label="Import multiple accounts from mnemonic",
-                       callback=lambda: show_import_multiple_accounts_notification("Import multiple accounts",
-                                                                                   "Approve?"),
+                       callback=lambda: show_import_multiple_accounts_notification("Import multiple accounts"),
                        parent=create_account_group)
 
         dpg.bind_font(default_font)
