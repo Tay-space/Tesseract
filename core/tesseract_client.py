@@ -333,8 +333,7 @@ def show_info(title, message, selection_callback, function_name):
 with dpg.window(pos=(0, 370), label="Create TheLootBox bundle", width=800, height=600, collapsed=True):
     your_address_group = dpg.add_group(horizontal=True)
     your_address_group_two = dpg.add_group(horizontal=True)
-    dpg.add_text("Create a loot bundle by clicking create bundle,", parent=your_address_group)
-    dpg.add_text("your current public address will be set as the owner.", parent=your_address_group_two)
+    dpg.add_text("Create a loot bundle", parent=your_address_group)
 
     dpg.add_button(pos=(10, 120), label="Create bundle",
                    callback=lambda: show_thelootbox_bundle_notification("Authorization required",
