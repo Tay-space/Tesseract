@@ -215,12 +215,14 @@ def show_exception(title, e):
 def show_import_multiple_accounts_notification(title):
     with dpg.mutex():
         with dpg.window(label=title, width=700, height=400, modal=True) as multiple_modal_id:
+            mnemonic_group = dpg.add_group()
             alert_message_group = dpg.add_group(horizontal=True)
-            mnemonic_group = dpg.add_group(horizontal=True)
-            dpg.add_text("Input mnemonic", pos=(10, 200), parent=mnemonic_group)
+            dpg.add_text("Input mnemonic", parent=mnemonic_group)
             mnemonic_phrase = dpg.add_input_text(parent=mnemonic_group)
-            dpg.add_text("Input number of accounts", pos=(10, 250), parent=mnemonic_group)
+            dpg.add_text("Input number of accounts", parent=mnemonic_group)
             number_of_accounts = dpg.add_input_text(parent=mnemonic_group)
+            dpg.add_text("", parent=mnemonic_group)
+
             dpg.add_button(label="Ok", width=75,
                            user_data=(
                                multiple_modal_id, True, "Import Multiple Accounts", mnemonic_phrase,
@@ -232,16 +234,17 @@ def show_import_multiple_accounts_notification(title):
 
 def show_import_account_notification(title, message):
     with dpg.mutex():
-        with dpg.window(label=title, width=700, height=400, modal=True, no_close=True) as import_modal_id:
-            alert_message_group = dpg.add_group(horizontal=True)
-            dpg.add_text(message)
+        with dpg.window(label=title, width=700, height=400, modal=True) as import_modal_id:
             input_mnemonic_group = dpg.add_group(horizontal=True)
-            dpg.add_text("Input mnemonic", pos=(10, 200), parent=input_mnemonic_group)
+            alert_message_group = dpg.add_group()
+            selection_buttons_group = dpg.add_group(horizontal=True)
+            dpg.add_text("Input mnemonic", parent=input_mnemonic_group)
             mnemonic_phrase = dpg.add_input_text(parent=input_mnemonic_group)
             dpg.add_button(label="Ok", width=75, user_data=(import_modal_id, True, "Import Account", mnemonic_phrase),
-                           callback=on_selection, parent=alert_message_group)
+                           callback=on_selection, parent=selection_buttons_group)
             dpg.add_button(label="Cancel", width=75, user_data=(import_modal_id, False, "Import Account"),
-                           callback=on_selection, parent=alert_message_group)
+                           callback=on_selection, parent=selection_buttons_group)
+            dpg.add_text(message, parent=alert_message_group)
 
 
 def show_send_ether_notification(title, to, amount, sender_account, unlock):
