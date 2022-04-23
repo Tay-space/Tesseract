@@ -347,7 +347,7 @@ with dpg.window(pos=(0, 335), label="Send Ether", width=800, height=600, collaps
     account_unlock_group = dpg.add_group(horizontal=True)
     dpg.add_text("To", parent=to_address_group)
     to_address = dpg.add_input_text(parent=to_address_group, no_spaces=True)
-    dpg.add_text("Enter amount of Ether to send", parent=amount_to_send_group)
+    dpg.add_text("Amount", parent=amount_to_send_group)
     amount_of_ether = dpg.add_input_text(parent=amount_to_send_group, no_spaces=True)
     dpg.add_text("Account Id", parent=sender_id_group)
     sender_account_id = dpg.add_input_text(parent=sender_id_group, no_spaces=True)
