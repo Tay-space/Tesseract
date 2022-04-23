@@ -333,7 +333,7 @@ def show_info(title, message, selection_callback, function_name):
 with dpg.window(pos=(0, 370), label="Create TheLootBox bundle", width=800, height=600, collapsed=True):
     your_address_group = dpg.add_group(horizontal=True)
     your_address_group_two = dpg.add_group(horizontal=True)
-    dpg.add_text("Create a loot bundle", parent=your_address_group)
+    dpg.add_text("Create loot bundle", parent=your_address_group)
 
     dpg.add_button(pos=(10, 120), label="Create bundle",
                    callback=lambda: show_thelootbox_bundle_notification("Authorization required",
@@ -389,10 +389,10 @@ with dpg.window(label="Create or import account", width=800, height=300) as moda
         create_account_group = dpg.add_group()
         dpg.add_button(pos=(10, 100), label="Create account", callback=create_eth_account_callback,
                        parent=create_account_group)
-        dpg.add_button(pos=(10, 150), label="Import account from mnemonic",
+        dpg.add_button(pos=(10, 150), label="Import account",
                        callback=lambda: show_import_account_notification("Import account", "Approve?"),
                        parent=create_account_group)
-        dpg.add_button(pos=(10, 200), label="Import multiple accounts from mnemonic",
+        dpg.add_button(pos=(10, 200), label="Import multiple accounts",
                        callback=lambda: show_import_multiple_accounts_notification("Import multiple accounts"),
                        parent=create_account_group)
 
